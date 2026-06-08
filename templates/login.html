@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Connexion — AdminPanel{% endblock %}
+
+{% block content %}
+<div class="login-bg">
+    <div class="login-particles"></div>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="brand-icon">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <h1 class="brand-name">Admin<span>Panel</span></h1>
+                <p class="brand-sub">Système de gestion sécurisé</p>
+            </div>
+
+            {% if error %}
+            <div class="alert-custom alert-danger-custom">
+                <i class="fas fa-circle-exclamation me-2"></i>{{ error }}
+            </div>
+            {% endif %}
+
+            <form action="/login" method="post" class="login-form">
+                <div class="input-group-custom">
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <input
+                        type="text"
+                        name="username"
+                        class="form-input-custom"
+                        placeholder="Nom d'utilisateur"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="input-group-custom">
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <input
+                        type="password"
+                        name="password"
+                        id="loginPassword"
+                        class="form-input-custom"
+                        placeholder="Mot de passe"
+                        required
+                        autocomplete="current-password"
+                    >
+                    <button type="button" class="toggle-pwd" onclick="togglePassword('loginPassword', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <span>Se connecter</span>
+                    <i class="fas fa-arrow-right-long ms-2"></i>
+                </button>
+            </form>
+
+            <p class="login-footer">
+                <i class="fas fa-circle-info me-1"></i>
+                Accès réservé aux utilisateurs autorisés
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+{% endblock %}

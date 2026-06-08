@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Admin — AdminPanel{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-shield-halved"></i>
+            <span>Admin<b>Panel</b></span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/admin/dashboard" class="nav-item active">
+                <i class="fas fa-gauge-high"></i>
+                <span>Dashboard</span>
+            </a>
+        </nav>
+        <div class="sidebar-bottom">
+            <div class="admin-profile">
+                <div class="profile-avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div>
+                    <div class="profile-name">{{ admin.username }}</div>
+                    <div class="profile-role">Administrateur</div>
+                </div>
+            </div>
+            <a href="/logout" class="btn-logout">
+                <i class="fas fa-right-from-bracket"></i>
+                <span>Déconnexion</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <div>
+                <h2 class="topbar-title">Dashboard</h2>
+                <p class="topbar-sub">Vue d'ensemble du système</p>
+            </div>
+            <button class="btn-create" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                <i class="fas fa-plus me-2"></i>Nouvel utilisateur
+            </button>
+        </header>
+
+        {% if request.query_params.get('success') %}
+        <div class="alert-custom alert-success-custom mb-4">
+            <i class="fas fa-circle-check me-2"></i>Utilisateur créé avec succès !
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="alert-custom alert-danger-custom mb-4">
+            <i class="fas fa-circle-exclamation me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card stat-blue">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ total_users }}</div>
+                    <div class="stat-label">Total utilisateurs</div>
+                </div>
+            </div>
+            <div class="stat-card stat-green">
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ active_users }}</div>
+                    <div class="stat-label">Utilisateurs actifs</div>
+                </div>
+            </div>
+            <div class="stat-card stat-orange">
+                <div class="stat-icon"><i class="fas fa-user-xmark"></i></div>
+                <div class="stat-info">
+                    <div class="stat-value">{{ total_users - active_users }}</div>
+                    <div class="stat-label">Utilisateurs inactifs</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <h3><i class="fas fa-list me-2"></i>Liste des utilisateurs</h3>
+                <div class="search-box">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Rechercher..." oninput="filterTable()">
+                </div>
+            </div>
+
+            {% if users %}
+            <div class="table-responsive">
+                <table class="admin-table" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Utilisateur</th>
+                            <th>Email</th>
+                            <th>Mot de passe</th>
+                            <th>Statut</th>
+                            <th>Créé le</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr id="row-{{ u.id }}">
+                            <td class="td-id">{{ u.id }}</td>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="user-avatar-sm">{{ u.username[0]|upper }}</div>
+                                    <div>
+                                        <div class="user-name">{{ u.username }}</div>
+                                        {% if u.full_name %}<div class="user-fullname">{{ u.full_name }}</div>{% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="td-email">{{ u.email or '—' }}</td>
+                            <td>
+                                <div class="pwd-cell">
+                                    <span class="pwd-masked" id="pwd-{{ u.id }}">••••••••</span>
+                                    <button class="btn-eye" onclick="togglePwd({{ u.id }}, '{{ u.password_hash[:8] }}...')" title="Afficher/Masquer">
+                                        <i class="fas fa-eye" id="eye-{{ u.id }}"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge-status {{ 'badge-active' if u.is_active else 'badge-inactive' }}" id="badge-{{ u.id }}">
+                                    {{ 'Actif' if u.is_active else 'Inactif' }}
+                                </span>
+                            </td>
+                            <td class="td-date">{{ u.created_at.strftime('%d/%m/%Y %H:%M') if u.created_at else '—' }}</td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn-action btn-toggle" onclick="toggleUser({{ u.id }})" title="{{ 'Désactiver' if u.is_active else 'Activer' }}" id="toggle-{{ u.id }}">
+                                        <i class="fas {{ 'fa-toggle-on' if u.is_active else 'fa-toggle-off' }}"></i>
+                                    </button>
+                                    <button class="btn-action btn-delete" onclick="deleteUser({{ u.id }}, '{{ u.username }}')" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-users-slash"></i>
+                <p>Aucun utilisateur créé pour le moment</p>
+                <button class="btn-create mt-3" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                    <i class="fas fa-plus me-2"></i>Créer le premier utilisateur
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-custom">
+            <div class="modal-header-custom">
+                <h5><i class="fas fa-user-plus me-2"></i>Créer un utilisateur</h5>
+                <button type="button" class="btn-close-custom" data-bs-dismiss="modal">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <form action="/admin/create-user" method="post">
+                <div class="modal-body-custom">
+                    <div class="form-group-custom">
+                        <label>Nom d'utilisateur <span class="required">*</span></label>
+                        <div class="input-group-custom">
+                            <div class="input-icon"><i class="fas fa-user"></i></div>
+                            <input type="text" name="username" class="form-input-custom" placeholder="ex: jean.dupont" required>
+                        </div>
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Mot de passe <span class="required">*</span></label>
+                        <div class="input-group-custom">
+                            <div class="input-icon"><i class="fas fa-lock"></i></div>
+                            <input type="password" name="password" id="newUserPwd" class="form-input-custom" placeholder="Mot de passe sécurisé" required>
+                            <button type="button" class="toggle-pwd" onclick="togglePassword('newUserPwd', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Nom complet</label>
+                        <div class="input-group-custom">
+                            <div class="input-icon"><i class="fas fa-id-card"></i></div>
+                            <input type="text" name="full_name" class="form-input-custom" placeholder="ex: Jean Dupont">
+                        </div>
+                    </div>
+                    <div class="form-group-custom">
+                        <label>Email</label>
+                        <div class="input-group-custom">
+                            <div class="input-icon"><i class="fas fa-envelope"></i></div>
+                            <input type="email" name="email" class="form-input-custom" placeholder="ex: jean@exemple.com">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer-custom">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn-create">
+                        <i class="fas fa-plus me-2"></i>Créer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content modal-custom">
+            <div class="modal-header-custom">
+                <h5><i class="fas fa-triangle-exclamation me-2 text-warning"></i>Confirmer</h5>
+                <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="modal-body-custom">
+                <p id="deleteConfirmText">Supprimer cet utilisateur ?</p>
+            </div>
+            <div class="modal-footer-custom">
+                <button type="button" class="btn-cancel" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn-delete-confirm" id="confirmDeleteBtn">
+                    <i class="fas fa-trash me-2"></i>Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pwdStates = {};
+let deleteUserId = null;
+
+function togglePwd(id, hashedPreview) {
+    const el = document.getElementById('pwd-' + id);
+    const icon = document.getElementById('eye-' + id);
+    if (!pwdStates[id]) {
+        el.textContent = hashedPreview;
+        el.style.fontFamily = 'JetBrains Mono, monospace';
+        el.style.fontSize = '11px';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+        pwdStates[id] = true;
+    } else {
+        el.textContent = '••••••••';
+        el.style.fontFamily = '';
+        el.style.fontSize = '';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+        pwdStates[id] = false;
+    }
+}
+
+async function toggleUser(id) {
+    const res = await fetch('/admin/toggle-user/' + id, { method: 'POST' });
+    const data = await res.json();
+    const badge = document.getElementById('badge-' + id);
+    const btn = document.getElementById('toggle-' + id);
+    if (data.status === 'active') {
+        badge.textContent = 'Actif';
+        badge.className = 'badge-status badge-active';
+        btn.querySelector('i').className = 'fas fa-toggle-on';
+        btn.title = 'Désactiver';
+    } else {
+        badge.textContent = 'Inactif';
+        badge.className = 'badge-status badge-inactive';
+        btn.querySelector('i').className = 'fas fa-toggle-off';
+        btn.title = 'Activer';
+    }
+}
+
+function deleteUser(id, username) {
+    deleteUserId = id;
+    document.getElementById('deleteConfirmText').innerHTML =
+        `Supprimer l'utilisateur <strong>${username}</strong> ? Cette action est irréversible.`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+    if (!deleteUserId) return;
+    const res = await fetch('/admin/delete-user/' + deleteUserId, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('row-' + deleteUserId).remove();
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+    }
+});
+
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#usersTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+{% if show_modal %}
+window.addEventListener('load', () => {
+    new bootstrap.Modal(document.getElementById('createUserModal')).show();
+});
+{% endif %}
+</script>
+{% endblock %}

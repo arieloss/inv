@@ -1,0 +1,59 @@
+{% extends "user/base_user.html" %}
+{% block title %}Historique — AdminPanel{% endblock %}
+{% block page_title %}Historique{% endblock %}
+{% block page_sub %}Journal complet de vos activités{% endblock %}
+
+{% block page_content %}
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="fas fa-clock-rotate-left me-2"></i>Toutes les activités</h3>
+        <div class="search-box">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher..." oninput="filterTable()">
+        </div>
+    </div>
+
+    {% if history %}
+    <div class="table-responsive">
+        <table class="admin-table" id="historyTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Action</th>
+                    <th>Détails</th>
+                    <th>IP</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in history %}
+                <tr>
+                    <td class="td-id">{{ h.id }}</td>
+                    <td><span class="action-tag">{{ h.action }}</span></td>
+                    <td class="td-details">{{ h.details or '—' }}</td>
+                    <td><code class="ip-code">{{ h.ip_address or '—' }}</code></td>
+                    <td class="td-date">{{ h.created_at.strftime('%d/%m/%Y à %H:%M:%S') if h.created_at else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-clock-rotate-left"></i>
+        <p>Aucune activité enregistrée pour l'instant.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block user_scripts %}
+<script>
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#historyTable tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

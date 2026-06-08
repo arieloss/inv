@@ -1,0 +1,575 @@
+{% extends "user/base_user.html" %}
+{% block title %}Dashboard Onduleur — AdminPanel{% endblock %}
+{% block page_title %}Onduleur 3 sources{% endblock %}
+{% block page_sub %}Surveillance en temps réel des tensions{% endblock %}
+
+{% block page_content %}
+
+<style>
+/* ═══════════════════════════════════════════════════
+   PANNEAU COMMANDE MANUELLE — bouton ESP32
+═══════════════════════════════════════════════════ */
+.cmd-wrapper {
+  margin-bottom: 24px;
+}
+
+.cmd-panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 28px;
+  background: linear-gradient(135deg,
+    rgba(255, 107, 53, 0.06) 0%,
+    rgba(255, 60, 60, 0.04) 50%,
+    rgba(20, 25, 35, 0.8) 100%
+  );
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* ligne déco gauche */
+.cmd-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #ff6b35, #ff3c3c);
+  border-radius: 4px 0 0 4px;
+}
+
+/* halo de fond animé */
+.cmd-panel::after {
+  content: '';
+  position: absolute;
+  right: -60px; top: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,107,53,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cmd-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.cmd-icon-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 53, 0.12);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 12px;
+  color: #ff6b35;
+  font-size: 1.25rem;
+}
+
+.cmd-icon-ping {
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,107,53,0.4);
+  animation: cmd-ping 2.5s ease-out infinite;
+}
+
+@keyframes cmd-ping {
+  0%   { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.4); }
+}
+
+.cmd-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cmd-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e6edf3;
+  letter-spacing: 0.3px;
+}
+
+.cmd-subtitle {
+  font-size: 0.76rem;
+  color: #6e7c8c;
+  letter-spacing: 0.2px;
+}
+
+/* ── LE BOUTON ── */
+.cmd-btn-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.cmd-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b35 0%, #e03a20 100%);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow:
+    0 4px 15px rgba(255,107,53,0.35),
+    0 1px 0 rgba(255,255,255,0.1) inset;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* shimmer sweep */
+.cmd-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.5s;
+}
+
+.cmd-btn:hover::before  { left: 150%; }
+.cmd-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 8px 25px rgba(255,107,53,0.5),
+    0 1px 0 rgba(255,255,255,0.12) inset;
+}
+
+.cmd-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(255,107,53,0.3);
+}
+
+.cmd-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.cmd-btn .btn-icon {
+  font-size: 1rem;
+  transition: transform 0.3s;
+}
+.cmd-btn:hover:not(:disabled) .btn-icon {
+  transform: rotate(15deg) scale(1.2);
+}
+
+/* spinner lors de l'envoi */
+.cmd-btn .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Feedback ── */
+.cmd-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cmd-feedback.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.cmd-feedback.fb-ok {
+  background: rgba(63, 185, 80, 0.12);
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  color: #3fb950;
+}
+
+.cmd-feedback.fb-err {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: #f85149;
+}
+
+/* ── Barre de cooldown ── */
+.cmd-cooldown-bar {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #ff6b35, #ffd700);
+  border-radius: 0 0 14px 14px;
+  transition: width linear;
+  opacity: 0;
+}
+
+.cmd-cooldown-bar.running {
+  opacity: 1;
+}
+</style>
+
+{# ── Cartes des 3 sources ── #}
+<div class="inv-sources-grid">
+
+  {% for i in [1, 2, 3] %}
+  {% set is_active = last_reading and last_reading.active_source == i %}
+  {% if i == 1 %}
+    {% set v = last_reading.voltage_s1 if last_reading else None %}
+    {% set f = last_reading.frequency_s1 if last_reading else None %}
+    {% set name = source_names['S1'] %}
+    {% set icon = "fa-plug" %}
+  {% elif i == 2 %}
+    {% set v = last_reading.voltage_s2 if last_reading else None %}
+    {% set f = last_reading.frequency_s2 if last_reading else None %}
+    {% set name = source_names['S2'] %}
+    {% set icon = "fa-gear" %}
+  {% else %}
+    {% set v = last_reading.voltage_s3 if last_reading else None %}
+    {% set f = last_reading.frequency_s3 if last_reading else None %}
+    {% set name = source_names['S3'] %}
+    {% set icon = "fa-solar-panel" %}
+  {% endif %}
+
+  <div class="inv-source-card {{ 'inv-active' if is_active else 'inv-idle' }}">
+    <div class="inv-card-top">
+      <div class="inv-icon-wrap">
+        <i class="fas {{ icon }}"></i>
+      </div>
+      <div class="inv-source-label">
+        <span class="inv-src-num">Source {{ i }}</span>
+        <span class="inv-src-name">{{ name }}</span>
+      </div>
+      <div class="inv-status-pill {% if is_active %}pill-active{% elif v and v > 0 %}pill-present{% else %}pill-absent{% endif %}">
+        {% if is_active %}<i class="fas fa-bolt"></i> Active
+        {% elif v and v > 0 %}Présente
+        {% else %}Absente{% endif %}
+      </div>
+    </div>
+
+    <div class="inv-voltage-row">
+      <span class="inv-v-value">
+        {% if v is not none %}{{ "%.1f"|format(v) }}{% else %}—{% endif %}
+      </span>
+      <span class="inv-v-unit">V</span>
+    </div>
+
+    <div class="inv-freq-row {{ '' if f is not none else 'inv-no-data' }}">
+      <i class="fas fa-wave-square"></i>
+      <span>{% if f is not none %}{{ "%.1f"|format(f) }}{% else %}—{% endif %} Hz</span>
+    </div>
+
+    {% if is_active %}
+    <div class="inv-active-bar"><div class="inv-active-fill"></div></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+</div>
+
+{# ── Source active résumé ── #}
+<div class="inv-active-summary">
+  <i class="fas fa-bolt"></i>
+  {% if last_reading and last_reading.active_source %}
+    Source active :
+    {% if last_reading.active_source == 1 %}{{ source_names['S1'] }}
+    {% elif last_reading.active_source == 2 %}{{ source_names['S2'] }}
+    {% else %}{{ source_names['S3'] }}{% endif %}
+    (Source {{ last_reading.active_source }})
+  {% else %}
+    Aucune donnée reçue — en attente de l'onduleur
+  {% endif %}
+  <span class="inv-live-dot"></span>
+</div>
+
+{# ══════════════════════════════════════════════════
+   COMMANDE MANUELLE ESP32
+══════════════════════════════════════════════════ #}
+<div class="cmd-wrapper">
+  <div class="cmd-panel" id="cmdPanel">
+    <div class="cmd-cooldown-bar" id="cmdCooldownBar"></div>
+
+    <div class="cmd-info">
+      <div class="cmd-icon-wrap">
+        <div class="cmd-icon-ping"></div>
+        <i class="fas fa-microchip"></i>
+      </div>
+      <div class="cmd-text-block">
+        <span class="cmd-title">Commande manuelle — ESP32</span>
+        <span class="cmd-subtitle">Force une commutation de source via le réseau local</span>
+      </div>
+    </div>
+
+    <div class="cmd-btn-area">
+      <span class="cmd-feedback" id="cmdFeedback"></span>
+      <button class="cmd-btn" id="cmdBtn" onclick="sendCommand()">
+        <span class="btn-icon"><i class="fas fa-bolt"></i></span>
+        <span class="btn-label">Envoyer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── Graphique des tensions ── #}
+<div class="table-card inv-chart-card">
+  <div class="table-header">
+    <h3><i class="fas fa-chart-line me-2"></i>Historique des tensions</h3>
+    <div class="inv-legend">
+      <span class="leg-item leg-s1"><i class="fas fa-circle"></i> Source 1</span>
+      <span class="leg-item leg-s2"><i class="fas fa-circle"></i> Source 2</span>
+      <span class="leg-item leg-s3"><i class="fas fa-circle"></i> Source 3</span>
+    </div>
+  </div>
+  <div class="inv-chart-wrap">
+    <canvas id="voltageChart"></canvas>
+    {% if not last_reading %}
+    <div class="inv-no-data-overlay">
+      <i class="fas fa-satellite-dish"></i>
+      <p>En attente de données de l'onduleur…</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Tableau dernières valeurs ── #}
+{% if last_reading %}
+<div class="table-card mt-4">
+  <div class="table-header">
+    <h3><i class="fas fa-table-list me-2"></i>Dernière mesure</h3>
+    <span class="inv-ts">{{ last_reading.created_at.strftime('%d/%m/%Y à %H:%M:%S') }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Source</th><th>Tension (V)</th><th>Fréquence (Hz)</th><th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i, v, f in [
+          (1, last_reading.voltage_s1, last_reading.frequency_s1),
+          (2, last_reading.voltage_s2, last_reading.frequency_s2),
+          (3, last_reading.voltage_s3, last_reading.frequency_s3),
+        ] %}
+        <tr>
+          <td>
+            <div class="user-cell">
+              <div class="user-avatar-sm">S{{ i }}</div>
+              <span>{{ source_names['S' ~ i] }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="inv-v-table {{ 'inv-v-ok' if v and v > 100 else 'inv-v-bad' }}">
+              {% if v is not none %}{{ "%.1f"|format(v) }} V{% else %}—{% endif %}
+            </span>
+          </td>
+          <td>{% if f is not none %}{{ "%.1f"|format(f) }} Hz{% else %}—{% endif %}</td>
+          <td>
+            {% if last_reading.active_source == i %}
+              <span class="badge-status badge-active"><i class="fas fa-bolt me-1"></i>Active</span>
+            {% elif v and v > 100 %}
+              <span class="badge-status" style="background:rgba(79,142,247,.13);color:var(--accent);border:1px solid rgba(79,142,247,.25)">Présente</span>
+            {% else %}
+              <span class="badge-status badge-inactive">Absente</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block user_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ── Chart.js ──────────────────────────────────────────────── */
+const raw = {{ chart_data | safe }};
+const gridColor  = 'rgba(255,255,255,0.06)';
+const tickColor  = '#8b949e';
+const fontFamily = "'Sora', sans-serif";
+
+const ctx = document.getElementById('voltageChart');
+if (ctx && raw.labels.length > 0) {
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: raw.labels,
+      datasets: [
+        {
+          label: 'Source 1 — Réseau EDL',
+          data: raw.source1,
+          borderColor: '#4f8ef7',
+          backgroundColor: 'rgba(79,142,247,0.08)',
+          borderWidth: 2,
+          pointRadius: raw.labels.length > 30 ? 0 : 3,
+          pointHoverRadius: 5,
+          tension: 0.35,
+          fill: true,
+        },
+        {
+          label: 'Source 2 — Groupe électrogène',
+          data: raw.source2,
+          borderColor: '#3fb950',
+          backgroundColor: 'rgba(63,185,80,0.07)',
+          borderWidth: 2,
+          pointRadius: raw.labels.length > 30 ? 0 : 3,
+          pointHoverRadius: 5,
+          tension: 0.35,
+          fill: true,
+        },
+        {
+          label: 'Source 3 — Solaire / Batterie',
+          data: raw.source3,
+          borderColor: '#e3b341',
+          backgroundColor: 'rgba(227,179,65,0.07)',
+          borderWidth: 2,
+          pointRadius: raw.labels.length > 30 ? 0 : 3,
+          pointHoverRadius: 5,
+          tension: 0.35,
+          fill: true,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2230',
+          borderColor: 'rgba(255,255,255,0.08)',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+          padding: 12,
+          callbacks: {
+            label: c => ` ${c.dataset.label}: ${c.parsed.y !== null ? c.parsed.y.toFixed(1) + ' V' : '—'}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { family: fontFamily, size: 11 }, maxTicksLimit: 10, maxRotation: 0 }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { family: fontFamily, size: 11 }, callback: v => v + ' V' },
+          title: { display: true, text: 'Tension (V)', color: tickColor, font: { family: fontFamily, size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+/* ── Commande manuelle ESP32 ───────────────────────────────── */
+const COOLDOWN_MS = 5000; // 5s entre deux envois
+let cmdCooldown = false;
+
+async function sendCommand() {
+  if (cmdCooldown) return;
+
+  const btn      = document.getElementById('cmdBtn');
+  const feedback = document.getElementById('cmdFeedback');
+  const bar      = document.getElementById('cmdCooldownBar');
+
+  // État "envoi en cours"
+  cmdCooldown = true;
+  btn.disabled = true;
+  btn.querySelector('.btn-icon').innerHTML = '<span class="spinner"></span>';
+  btn.querySelector('.btn-label').textContent = 'Envoi…';
+  hideFeedback(feedback);
+
+  try {
+    const res = await fetch('/api/inverter/command/button', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': '{{ inverter_api_key }}'
+      }
+    });
+
+    if (res.ok) {
+      showFeedback(feedback, '✓ Signal envoyé — ESP32 va commuter', 'fb-ok');
+    } else {
+      const detail = await res.json().catch(() => ({}));
+      showFeedback(feedback, `✗ Erreur ${res.status}${detail.detail ? ' — ' + detail.detail : ''}`, 'fb-err');
+    }
+  } catch (e) {
+    showFeedback(feedback, '✗ Serveur injoignable', 'fb-err');
+  }
+
+  // Restore bouton
+  btn.querySelector('.btn-icon').innerHTML = '<i class="fas fa-bolt"></i>';
+  btn.querySelector('.btn-label').textContent = 'Envoyer';
+
+  // Barre de cooldown
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  bar.classList.add('running');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bar.style.transition = `width ${COOLDOWN_MS}ms linear`;
+      bar.style.width = '0%';
+    });
+  });
+
+  setTimeout(() => {
+    cmdCooldown = false;
+    btn.disabled = false;
+    bar.classList.remove('running');
+    bar.style.width = '0%';
+  }, COOLDOWN_MS);
+}
+
+function showFeedback(el, msg, cls) {
+  el.className = 'cmd-feedback ' + cls;
+  el.innerHTML = msg;
+  el.classList.add('show');
+  setTimeout(() => hideFeedback(el), 4500);
+}
+
+function hideFeedback(el) {
+  el.classList.remove('show');
+  setTimeout(() => { el.className = 'cmd-feedback'; el.innerHTML = ''; }, 300);
+}
+
+/* ── Auto-refresh toutes les 10 secondes ───────────────────── */
+setTimeout(() => location.reload(), 10000);
+</script>
+{% endblock %}

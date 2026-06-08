@@ -1,0 +1,55 @@
+{% extends "user/base_user.html" %}
+{% block title %}Alertes — AdminPanel{% endblock %}
+{% block page_title %}Alertes{% endblock %}
+{% block page_sub %}Vos notifications et alertes système{% endblock %}
+
+{% block page_content %}
+{% if unread_alerts > 0 %}
+<div class="alert-custom alert-info-custom mb-4">
+    <i class="fas fa-bell me-2"></i>
+    Vous aviez <strong>{{ unread_alerts }}</strong> alerte{{ 's' if unread_alerts > 1 else '' }} non lue{{ 's' if unread_alerts > 1 else '' }}.
+</div>
+{% endif %}
+
+<div class="table-card">
+    <div class="table-header">
+        <h3><i class="fas fa-bell me-2"></i>Toutes les alertes</h3>
+    </div>
+
+    {% if alerts %}
+    <div class="alerts-list">
+        {% for alert in alerts %}
+        <div class="alert-item alert-item-{{ alert.alert_type }}">
+            <div class="alert-item-icon">
+                {% if alert.alert_type == 'danger' %}
+                    <i class="fas fa-circle-xmark"></i>
+                {% elif alert.alert_type == 'warning' %}
+                    <i class="fas fa-triangle-exclamation"></i>
+                {% elif alert.alert_type == 'success' %}
+                    <i class="fas fa-circle-check"></i>
+                {% else %}
+                    <i class="fas fa-circle-info"></i>
+                {% endif %}
+            </div>
+            <div class="alert-item-body">
+                <div class="alert-item-title">{{ alert.title }}</div>
+                <div class="alert-item-msg">{{ alert.message }}</div>
+                <div class="alert-item-date">
+                    <i class="fas fa-clock me-1"></i>
+                    {{ alert.created_at.strftime('%d/%m/%Y à %H:%M') if alert.created_at else '—' }}
+                </div>
+            </div>
+            <div class="alert-item-badge">
+                <span class="badge-type badge-type-{{ alert.alert_type }}">{{ alert.alert_type|capitalize }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-bell-slash"></i>
+        <p>Aucune alerte pour l'instant. Tout est calme !</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

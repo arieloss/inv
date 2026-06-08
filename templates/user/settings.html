@@ -1,0 +1,444 @@
+{% extends "user/base_user.html" %}
+{% block title %}Paramètres — AdminPanel{% endblock %}
+{% block page_title %}Paramètres{% endblock %}
+{% block page_sub %}Gérez vos informations personnelles et la configuration de l'onduleur{% endblock %}
+
+{% block page_content %}
+{% if request.query_params.get('success') %}
+<div class="alert-custom alert-success-custom mb-4">
+    <i class="fas fa-circle-check me-2"></i>Profil mis à jour avec succès !
+</div>
+{% endif %}
+{% if request.query_params.get('pwd_success') %}
+<div class="alert-custom alert-success-custom mb-4">
+    <i class="fas fa-circle-check me-2"></i>Mot de passe modifié avec succès !
+</div>
+{% endif %}
+
+<div class="settings-grid">
+    <!-- Profile Card -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3><i class="fas fa-id-card me-2"></i>Informations du profil</h3>
+        </div>
+        <div class="settings-body">
+            <div class="profile-header-settings">
+                <div class="profile-avatar-lg">{{ user.username[0]|upper }}</div>
+                <div>
+                    <div class="profile-name-lg">{{ user.full_name or user.username }}</div>
+                    <div class="profile-role-lg">@{{ user.username }}</div>
+                </div>
+            </div>
+            <form action="/user/settings/update-profile" method="post">
+                <div class="form-group-custom">
+                    <label>Nom complet</label>
+                    <div class="input-group-custom">
+                        <div class="input-icon"><i class="fas fa-id-card"></i></div>
+                        <input type="text" name="full_name" class="form-input-custom"
+                               value="{{ user.full_name or '' }}" placeholder="Votre nom complet">
+                    </div>
+                </div>
+                <div class="form-group-custom">
+                    <label>Adresse email</label>
+                    <div class="input-group-custom">
+                        <div class="input-icon"><i class="fas fa-envelope"></i></div>
+                        <input type="email" name="email" class="form-input-custom"
+                               value="{{ user.email or '' }}" placeholder="votre@email.com">
+                    </div>
+                </div>
+                <div class="form-group-custom">
+                    <label>Nom d'utilisateur</label>
+                    <div class="input-group-custom disabled-input">
+                        <div class="input-icon"><i class="fas fa-user"></i></div>
+                        <input type="text" class="form-input-custom" value="{{ user.username }}" disabled>
+                    </div>
+                    <small class="input-hint">Le nom d'utilisateur ne peut pas être modifié.</small>
+                </div>
+                <button type="submit" class="btn-create w-100 mt-2">
+                    <i class="fas fa-floppy-disk me-2"></i>Sauvegarder les modifications
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Password Card -->
+    <div class="table-card">
+        <div class="table-header">
+            <h3><i class="fas fa-lock me-2"></i>Changer le mot de passe</h3>
+        </div>
+        <div class="settings-body">
+            {% if pwd_error %}
+            <div class="alert-custom alert-danger-custom mb-3">
+                <i class="fas fa-circle-exclamation me-2"></i>{{ pwd_error }}
+            </div>
+            {% endif %}
+            <form action="/user/settings/change-password" method="post">
+                <div class="form-group-custom">
+                    <label>Mot de passe actuel <span class="required">*</span></label>
+                    <div class="input-group-custom">
+                        <div class="input-icon"><i class="fas fa-lock"></i></div>
+                        <input type="password" name="current_password" id="currentPwd"
+                               class="form-input-custom" placeholder="Mot de passe actuel" required>
+                        <button type="button" class="toggle-pwd" onclick="togglePassword('currentPwd', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group-custom">
+                    <label>Nouveau mot de passe <span class="required">*</span></label>
+                    <div class="input-group-custom">
+                        <div class="input-icon"><i class="fas fa-key"></i></div>
+                        <input type="password" name="new_password" id="newPwd"
+                               class="form-input-custom" placeholder="Nouveau mot de passe" required
+                               oninput="checkStrength(this.value)">
+                        <button type="button" class="toggle-pwd" onclick="togglePassword('newPwd', this)">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="strength-bar mt-2">
+                        <div class="strength-fill" id="strengthFill"></div>
+                    </div>
+                    <small class="strength-label" id="strengthLabel"></small>
+                </div>
+                <button type="submit" class="btn-create w-100 mt-2">
+                    <i class="fas fa-rotate me-2"></i>Modifier le mot de passe
+                </button>
+            </form>
+
+            <div class="info-box mt-4">
+                <i class="fas fa-shield-halved me-2"></i>
+                <div>
+                    <strong>Conseils de sécurité</strong>
+                    <ul class="security-tips">
+                        <li>Utilisez au moins 8 caractères</li>
+                        <li>Mélangez majuscules, chiffres et symboles</li>
+                        <li>N'utilisez pas d'informations personnelles</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account info card -->
+<div class="table-card mt-4">
+    <div class="table-header">
+        <h3><i class="fas fa-circle-info me-2"></i>Informations du compte</h3>
+    </div>
+    <div class="account-info-grid">
+        <div class="account-info-item">
+            <span class="info-label">Statut</span>
+            <span class="badge-status badge-active">Actif</span>
+        </div>
+        <div class="account-info-item">
+            <span class="info-label">Rôle</span>
+            <span class="role-badge">Utilisateur</span>
+        </div>
+        <div class="account-info-item">
+            <span class="info-label">Membre depuis</span>
+            <span class="info-value">{{ user.created_at.strftime('%d %B %Y') if user.created_at else '—' }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION ONDULEUR — Priorités & noms des sources
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<div class="table-card mt-4" id="inverterSection">
+    <div class="table-header d-flex align-items-center justify-content-between">
+        <h3><i class="fas fa-bolt me-2"></i>Configuration onduleur</h3>
+        <!-- Indicateur de chargement -->
+        <span id="invLoadingBadge" class="badge bg-secondary" style="font-size:11px">
+            <i class="fas fa-spinner fa-spin me-1"></i>Chargement…
+        </span>
+        <span id="invSavedBadge" class="badge bg-success d-none" style="font-size:11px">
+            <i class="fas fa-check me-1"></i>Enregistré
+        </span>
+        <span id="invErrorBadge" class="badge bg-danger d-none" style="font-size:11px">
+            <i class="fas fa-triangle-exclamation me-1"></i>Erreur
+        </span>
+    </div>
+
+    <div class="settings-body">
+
+        <!-- ── Tableau des priorités ── -->
+        <p class="text-muted mb-2" style="font-size:13px">
+            Utilisez les flèches pour réordonner les sources.
+            La source en rang&nbsp;<strong>1</strong> est toujours préférée.
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0" id="prioTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:60px">Rang</th>
+                        <th>Source</th>
+                        <th>Nom affiché</th>
+                        <th style="width:120px; text-align:center">Déplacer</th>
+                    </tr>
+                </thead>
+                <tbody id="prioTableBody">
+                    <!-- Rempli par JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ── Renommer les sources ── -->
+        <hr class="my-3">
+        <h6 class="mb-2"><i class="fas fa-tag me-1"></i>Renommer les sources</h6>
+        <p class="text-muted mb-2" style="font-size:13px">
+            Ces noms s'affichent sur le LCD et dans les tableaux de bord.
+            30 caractères maximum.
+        </p>
+
+        <div class="row g-2" id="renameFields">
+            <!-- Rempli par JS -->
+        </div>
+
+        <!-- ── Boutons d'action ── -->
+        <div class="d-flex gap-2 mt-3 justify-content-end">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetInverterConfig()">
+                <i class="fas fa-rotate-left me-1"></i>Réinitialiser
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveInverterConfig()">
+                <i class="fas fa-floppy-disk me-1"></i>Enregistrer la configuration
+            </button>
+        </div>
+
+    </div>
+</div>
+<!-- ── fin section onduleur ── -->
+
+{% endblock %}
+
+
+{% block user_scripts %}
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   Mots de passe
+────────────────────────────────────────────────────────────────────────── */
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+function checkStrength(val) {
+    const fill  = document.getElementById('strengthFill');
+    const label = document.getElementById('strengthLabel');
+    let score = 0;
+    if (val.length >= 8)           score++;
+    if (/[A-Z]/.test(val))        score++;
+    if (/[0-9]/.test(val))        score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+
+    const levels = [
+        { pct: '0%',   color: 'transparent', text: '' },
+        { pct: '25%',  color: '#ef4444',     text: 'Très faible' },
+        { pct: '50%',  color: '#f97316',     text: 'Faible'      },
+        { pct: '75%',  color: '#eab308',     text: 'Moyen'       },
+        { pct: '100%', color: '#22c55e',     text: 'Fort'        },
+    ];
+    fill.style.width      = levels[score].pct;
+    fill.style.background = levels[score].color;
+    label.textContent     = levels[score].text;
+    label.style.color     = levels[score].color;
+}
+
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SECTION ONDULEUR
+   order[]      : indices 0-based dans sourcesMeta, ordre d'affichage du
+                  tableau (index 0 = rang 1 = source prioritaire)
+   sourcesMeta  : métadonnées fixes (id, label)
+   names{}      : noms éditables (clés "S1", "S2", "S3")
+────────────────────────────────────────────────────────────────────────── */
+
+const sourcesMeta = [
+    { id: 'S1', label: 'S1' },
+    { id: 'S2', label: 'S2' },
+    { id: 'S3', label: 'S3' },
+];
+
+// order[rang] = index dans sourcesMeta
+let invOrder = [0, 1, 2];
+let invNames = { S1: 'Source 1', S2: 'Source 2', S3: 'Source 3' };
+
+/* Badge helpers */
+function showBadge(id) {
+    ['invLoadingBadge','invSavedBadge','invErrorBadge'].forEach(b => {
+        document.getElementById(b).classList.add('d-none');
+    });
+    document.getElementById(id).classList.remove('d-none');
+}
+
+/* ── Rendu du tableau de priorités ── */
+function renderPrioTable() {
+    const tbody = document.getElementById('prioTableBody');
+    tbody.innerHTML = invOrder.map((srcIdx, rank) => {
+        const src  = sourcesMeta[srcIdx];
+        const name = invNames[src.id] || src.id;
+
+        // Badge rang coloré
+        const rankColors = ['#fef3c7;color:#92400e', '#dbeafe;color:#1e40af', '#f3f4f6;color:#374151'];
+        const badgeStyle = `background:${rankColors[rank]}; border-radius:50%; width:26px; height:26px;
+                            display:inline-flex; align-items:center; justify-content:center;
+                            font-size:12px; font-weight:600;`;
+
+        return `
+        <tr id="row_${rank}">
+            <td><span style="${badgeStyle}">${rank + 1}</span></td>
+            <td><strong>${src.id}</strong></td>
+            <td style="color:#6b7280; font-size:13px">${name}</td>
+            <td style="text-align:center">
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2 me-1"
+                        onclick="invMove(${rank}, -1)"
+                        ${rank === 0 ? 'disabled' : ''}
+                        title="Monter ${src.id}">
+                    <i class="fas fa-chevron-up fa-xs"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                        onclick="invMove(${rank}, 1)"
+                        ${rank === invOrder.length - 1 ? 'disabled' : ''}
+                        title="Descendre ${src.id}">
+                    <i class="fas fa-chevron-down fa-xs"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+/* ── Rendu des champs de renommage ── */
+function renderRenameFields() {
+    const container = document.getElementById('renameFields');
+    container.innerHTML = sourcesMeta.map(src => `
+        <div class="col-md-4">
+            <label class="form-label" style="font-size:13px; font-weight:500">
+                ${src.id}
+            </label>
+            <input  type="text"
+                    id="nameInput_${src.id}"
+                    class="form-control form-control-sm"
+                    maxlength="30"
+                    placeholder="${src.id}"
+                    value="${invNames[src.id] || ''}"
+                    oninput="invNames['${src.id}'] = this.value.trim() || '${src.id}'; renderPrioTable();">
+        </div>
+    `).join('');
+}
+
+/* ── Déplacer une source dans le tableau ── */
+function invMove(rank, dir) {
+    const newRank = rank + dir;
+    if (newRank < 0 || newRank >= invOrder.length) return;
+    [invOrder[rank], invOrder[newRank]] = [invOrder[newRank], invOrder[rank]];
+    renderPrioTable();
+}
+
+/* ── Réinitialiser à l'ordre par défaut ── */
+function resetInverterConfig() {
+    invOrder = [0, 1, 2];
+    invNames = { S1: 'Source 1', S2: 'Source 2', S3: 'Source 3' };
+    renderPrioTable();
+    renderRenameFields();
+}
+
+/* ── Construire le payload à partir de l'état courant ── */
+function buildPayload() {
+    // priorities[i] = rang de la source S(i+1) (1-based)
+    // invOrder[rang] = index de sourcesMeta, donc sourcesMeta[invOrder[rang]].id = "S1"|"S2"|"S3"
+    const priorities = [0, 0, 0];
+    invOrder.forEach((srcIdx, rang) => {
+        // srcIdx: 0→S1, 1→S2, 2→S3
+        priorities[srcIdx] = rang + 1;   // rang 1-based
+    });
+
+    // Lire les noms depuis les inputs (au cas où l'utilisateur n'aurait pas déclenché oninput)
+    sourcesMeta.forEach(src => {
+        const inp = document.getElementById('nameInput_' + src.id);
+        if (inp) invNames[src.id] = inp.value.trim() || src.id;
+    });
+
+    return {
+        priorities: priorities,
+        source_names: { ...invNames },
+    };
+}
+
+/* ── Clé API injectée côté serveur (ne jamais la coder en dur ici) ── */
+const INVERTER_API_KEY = "{{ inverter_api_key }}";
+
+/* ── Enregistrer via API ── */
+async function saveInverterConfig() {
+    showBadge('invLoadingBadge');
+    const payload = buildPayload();
+
+    try {
+        const resp = await fetch('/api/inverter/config', {
+            method:  'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Api-Key':    INVERTER_API_KEY,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            console.error('Erreur API config:', err);
+            showBadge('invErrorBadge');
+            return;
+        }
+
+        showBadge('invSavedBadge');
+        setTimeout(() => document.getElementById('invSavedBadge').classList.add('d-none'), 3000);
+    } catch (e) {
+        console.error('Erreur réseau:', e);
+        showBadge('invErrorBadge');
+    }
+}
+
+/* ── Charger la config depuis l'API au démarrage ── */
+async function loadInverterConfig() {
+    showBadge('invLoadingBadge');
+    try {
+        const resp = await fetch('/api/inverter/config', {
+            headers: { 'X-Api-Key': INVERTER_API_KEY },
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+        const data = await resp.json();
+
+        // data.priorities[i] = rang de S(i+1), on reconstruit invOrder
+        // invOrder[rang-1] = index de sourcesMeta
+        const priorities = data.priorities;    // [p_S1, p_S2, p_S3]
+        invOrder = new Array(3);
+        priorities.forEach((rang, srcIdx) => {
+            invOrder[rang - 1] = srcIdx;
+        });
+
+        invNames = { ...data.source_names };
+
+        document.getElementById('invLoadingBadge').classList.add('d-none');
+
+    } catch (e) {
+        console.error('Impossible de charger la config onduleur:', e);
+        document.getElementById('invLoadingBadge').classList.add('d-none');
+        // On garde les valeurs par défaut
+    }
+
+    renderPrioTable();
+    renderRenameFields();
+}
+
+/* ── Démarrage ── */
+document.addEventListener('DOMContentLoaded', loadInverterConfig);
+</script>
+{% endblock %}

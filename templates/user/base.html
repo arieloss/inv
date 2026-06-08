@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Dashboard{% endblock %} — Plateforme</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+<div class="user-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="sidebar-icon">⚡</div>
+        <span class="sidebar-name">Plateforme</span>
+      </div>
+    </div>
+
+    <div class="sidebar-user-info">
+      <div class="sidebar-avatar">{{ user.username[0]|upper }}</div>
+      <div class="sidebar-username">{{ user.username }}</div>
+      <div class="sidebar-role">Utilisateur</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/user/dashboard"
+         class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon">🏠</span> Tableau de bord
+      </a>
+      <a href="/user/history"
+         class="nav-item {% if active_page == 'history' %}active{% endif %}">
+        <span class="nav-icon">📋</span> Historique
+      </a>
+      <a href="/user/alerts"
+         class="nav-item {% if active_page == 'alerts' %}active{% endif %}">
+        <span class="nav-icon">🔔</span> Alertes
+        {% if unread_alerts > 0 %}
+          <span class="nav-badge">{{ unread_alerts }}</span>
+        {% endif %}
+      </a>
+      <a href="/user/settings"
+         class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+        <span class="nav-icon">⚙️</span> Paramètres
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="/logout" class="btn-sidebar-logout">⏻ Déconnexion</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="user-main">
+    <header class="user-topbar">
+      <div style="display:flex;align-items:center;gap:14px">
+        <button class="sidebar-toggle" onclick="toggleSidebar()"
+                style="display:none;background:none;border:none;color:var(--text);font-size:22px;cursor:pointer">☰</button>
+        <h1 class="topbar-title">{% block page_title %}Tableau de bord{% endblock %}</h1>
+      </div>
+      <span class="topbar-time" id="live-time"></span>
+    </header>
+
+    <div class="user-content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Live clock
+  function tick() {
+    const now = new Date();
+    const el = document.getElementById('live-time');
+    if (el) el.textContent = now.toLocaleDateString('fr-FR', {weekday:'long',day:'numeric',month:'long'})
+      + ' — ' + now.toLocaleTimeString('fr-FR');
+  }
+  tick(); setInterval(tick, 1000);
+
+  // Mobile sidebar toggle
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  // Show mobile toggle button on small screens
+  if (window.innerWidth <= 768) {
+    document.querySelector('.sidebar-toggle').style.display = 'block';
+  }
+</script>
+</body>
+</html>
